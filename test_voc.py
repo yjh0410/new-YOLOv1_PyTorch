@@ -19,9 +19,7 @@ parser.add_argument('-v', '--version', default='yolo',
                     help='yolo.')
 parser.add_argument('-d', '--dataset', default='VOC',
                     help='VOC or COCO dataset')
-parser.add_argument('-bk', '--backbone', type=str, default='r18',
-                    help='r18, r50, d19')
-parser.add_argument('--trained_model', default='weights_yolo_v1/resnet-18/yolo_v1_VOC_250.pth',
+parser.add_argument('--trained_model', default='weights/voc/',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--visual_threshold', default=0.3, type=float,
                     help='Final confidence threshold')

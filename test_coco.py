@@ -19,7 +19,7 @@ parser.add_argument('-d', '--dataset', default='COCO_val',
                     help='we use VOC, COCO_val, COCO_test-dev, to test.')
 parser.add_argument('-bk', '--backbone', type=str, default='r18',
                     help='r18, r50, d19')
-parser.add_argument('--trained_model', default='weights/coco/yolo_v2_72.2.pth',
+parser.add_argument('--trained_model', default='weights/coco/',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--visual_threshold', default=0.3, type=float,
                     help='Final confidence threshold')
