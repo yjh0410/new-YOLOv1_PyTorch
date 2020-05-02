@@ -21,7 +21,6 @@ class SAM(nn.Module):
         super(SAM, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_ch, in_ch, 1),
-            nn.BatchNorm2d(in_ch),
             nn.Sigmoid()           
         )
 
