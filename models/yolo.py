@@ -148,15 +148,14 @@ class myYOLO(nn.Module):
         # pred
         prediction = self.pred(C_5)
         prediction = prediction.view(C_5.size(0), 1 + self.num_classes + 4, -1).permute(0, 2, 1)
-        B, HW, C = prediction.size()
 
         # Divide prediction to obj_pred, txtytwth_pred and cls_pred   
         # [B, H*W, 1]
-        conf_pred = prediction[:, :, :1].contiguous().view(B, HW, 1)
+        conf_pred = prediction[:, :, :1]
         # [B, H*W, num_cls]
-        cls_pred = prediction[:, :, 1 : 1 + self.num_classes].contiguous().view(B, HW, self.num_classes)
+        cls_pred = prediction[:, :, 1 : 1 + self.num_classes]
         # [B, H*W, 4]
-        txtytwth_pred = prediction[:, :, 1 + self.num_classes:].contiguous()
+        txtytwth_pred = prediction[:, :, 1 + self.num_classes:]
 
         if not self.trainable:
             with torch.no_grad():
@@ -174,20 +173,6 @@ class myYOLO(nn.Module):
 
                 return bboxes, scores, cls_inds
         else:
-            # decode bbox, and remember to cancel its grad since we set iou as the label of objectness.
-            with torch.no_grad():
-                x1y1x2y2_pred = (self.decode_boxes(txtytwth_pred) / self.scale_torch).view(-1, 4)
-
-            x1y1x2y2_gt = target[:, :, 7:].view(-1, 4)
-
-            # compute iou
-            iou = tools.iou_score(x1y1x2y2_pred, x1y1x2y2_gt).view(B, HW, 1)
-            # print(iou.min(), iou.max())
-
-            # we set iou between pred bbox and gt bbox as conf label. 
-            # [obj, cls, txtytwth, x1y1x2y2] -> [conf, obj, cls, txtytwth]
-            target = torch.cat([iou, target[:, :, :7]], dim=2)
-
             conf_loss, cls_loss, txtytwth_loss, total_loss = tools.loss(pred_conf=conf_pred, pred_cls=cls_pred,
                                                                         pred_txtytwth=txtytwth_pred,
                                                                         label=target)

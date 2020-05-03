@@ -190,7 +190,6 @@ def train():
             print('ap50_95 : ', ap50_95)
             # convert to training mode.
             model.trainable = True
-            model.set_grid(input_size)
             model.train()
             if args.tfboard:
                 writer.add_scalar('val/COCOAP50', ap50, epoch + 1)
@@ -247,7 +246,6 @@ def train():
             if iter_i % 10 == 0 and iter_i > 0 and args.multi_scale:
                 size = random.randint(10, 19) * 32
                 input_size = [size, size]
-                model.set_grid(input_size)
 
                 # change input dim
                 # But this operation will report bugs when we use more workers in data loader, so I have to use 0 workers.
