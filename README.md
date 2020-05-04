@@ -23,10 +23,17 @@ So I don't write data augmentation by myself. I'm a little lazy~~
 
 My loss function and groundtruth creator both in the ```tools.py```, and you can try to change any parameters to improve the model.
 
-VOC is coming ...
+## Experiment
+Environment:
+
+- Python3.6, opencv-python, PyTorch1.1.0, CUDA10.0,cudnn7.5
+- AMD R5-3500-6 core, GTX-1660ti-6g
+
+VOC:
 <table><tbody>
-<tr><th align="left" bgcolor=#f8f8f8> </th>     <td bgcolor=white> size </td><td bgcolor=white> myYOLOv1 (PyTorch) </td></tr>
-<tr><th align="left" bgcolor=#f8f8f8> VOC07 test</th><td bgcolor=white> 416 </td><td bgcolor=white> - </td></tr>
+<tr><th align="left" bgcolor=#f8f8f8> </th>     <td bgcolor=white> size </td><td bgcolor=white> mAP </td><td bgcolor=white> FPS </td></tr>
+<tr><th align="left" bgcolor=#f8f8f8> VOC07 test</th><td bgcolor=white> 320 </td><td bgcolor=white> 63.5 </td><td bgcolor=white> 100 </td></tr>
+<tr><th align="left" bgcolor=#f8f8f8> VOC07 test</th><td bgcolor=white> 416 </td><td bgcolor=white> 69.5 </td><td bgcolor=white> 77 </td></tr>
 </table></tbody>
 
 COCO is coming ...(You have to wait for a long long long long long time.)
