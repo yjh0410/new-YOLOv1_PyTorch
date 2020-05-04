@@ -6,7 +6,6 @@ import torch.backends.cudnn as cudnn
 from data import VOC_ROOT, VOC_CLASSES
 from data import VOCAnnotationTransform, VOCDetection, BaseTransform, VOC_CLASSES
 from data import config
-from utils import get_device
 import numpy as np
 import cv2
 import tools
@@ -21,7 +20,7 @@ parser.add_argument('-d', '--dataset', default='VOC',
                     help='VOC or COCO dataset')
 parser.add_argument('--trained_model', default='weights/voc/',
                     type=str, help='Trained state_dict file path to open')
-parser.add_argument('--visual_threshold', default=0.3, type=float,
+parser.add_argument('--visual_threshold', default=0.5, type=float,
                     help='Final confidence threshold')
 parser.add_argument('--cuda', action='store_true', default=False,
                     help='use cuda.')
