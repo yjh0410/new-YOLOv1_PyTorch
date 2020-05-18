@@ -6,7 +6,7 @@ import numpy as np
 import tools
 
 class myYOLO(nn.Module):
-    def __init__(self, device, input_size=None, num_classes=20, trainable=False, conf_thresh=0.001, nms_thresh=0.5, hr=False):
+    def __init__(self, device, input_size=None, num_classes=20, trainable=False, conf_thresh=0.01, nms_thresh=0.5, hr=False):
         super(myYOLO, self).__init__()
         self.device = device
         self.num_classes = num_classes
@@ -148,6 +148,7 @@ class myYOLO(nn.Module):
         # pred
         prediction = self.pred(C_5)
         prediction = prediction.view(C_5.size(0), 1 + self.num_classes + 4, -1).permute(0, 2, 1)
+        B, HW, C = prediction.size()
 
         # Divide prediction to obj_pred, txtytwth_pred and cls_pred   
         # [B, H*W, 1]
@@ -156,7 +157,6 @@ class myYOLO(nn.Module):
         cls_pred = prediction[:, :, 1 : 1 + self.num_classes]
         # [B, H*W, 4]
         txtytwth_pred = prediction[:, :, 1 + self.num_classes:]
-
         if not self.trainable:
             with torch.no_grad():
                 # batch size = 1
