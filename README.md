@@ -39,7 +39,7 @@ VOC:
 COCO:
 <table><tbody>
 <tr><th align="left" bgcolor=#f8f8f8> </th>     <td bgcolor=white> size </td><td bgcolor=white> myYOLOv1 (PyTorch) </td></tr>
-<tr><th align="left" bgcolor=#f8f8f8> COCO val</th><td bgcolor=white> 416 </td><td bgcolor=white> AP=33.3 / AP50=15.6 </td></tr>
+<tr><th align="left" bgcolor=#f8f8f8> COCO val</th><td bgcolor=white> 416 </td><td bgcolor=white> AP=15.6 / AP50=33.0 </td></tr>
 
 </table></tbody>
 
