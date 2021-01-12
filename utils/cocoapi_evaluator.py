@@ -106,8 +106,8 @@ class COCOAPIEvaluator():
             cocoGt = self.dataset.coco
             # workaround: temporarily write data to json file because pycocotools can't process dict in py36.
             if self.testset:
-                json.dump(data_dict, open('yolac_2017.json', 'w'))
-                cocoDt = cocoGt.loadRes('yolac_2017.json')
+                json.dump(data_dict, open('yolo_2017.json', 'w'))
+                cocoDt = cocoGt.loadRes('yolo_2017.json')
             else:
                 _, tmp = tempfile.mkstemp()
                 json.dump(data_dict, open(tmp, 'w'))

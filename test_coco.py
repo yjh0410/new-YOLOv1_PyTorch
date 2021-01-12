@@ -8,7 +8,6 @@ from data import config, BaseTransform, VOCAnnotationTransform, VOCDetection, VO
 import numpy as np
 import cv2
 import time
-from decimal import *
 
 
 
@@ -17,16 +16,14 @@ parser.add_argument('-v', '--version', default='yolo',
                     help='yolo.')
 parser.add_argument('-d', '--dataset', default='COCO_val',
                     help='we use VOC, COCO_val, COCO_test-dev, to test.')
-parser.add_argument('-bk', '--backbone', type=str, default='r18',
-                    help='r18, r50, d19')
 parser.add_argument('--trained_model', default='weights/coco/',
                     type=str, help='Trained state_dict file path to open')
+parser.add_argument('-size', '--input_size', default=416, type=int,
+                    help='input size')
 parser.add_argument('--visual_threshold', default=0.3, type=float,
                     help='Final confidence threshold')
 parser.add_argument('--cuda', default=True, type=bool,
                     help='Use cuda to test model') 
-parser.add_argument('--dataset_root', default='/home/k303/object-detection/dataset/COCO/', 
-                    help='Location of VOC root directory')
 parser.add_argument('-f', default=None, type=str, 
                     help="Dummy arg so we can load in Jupyter Notebooks")
 parser.add_argument('--debug', action='store_true', default=False,
@@ -65,18 +62,16 @@ def test_net(net, device, testset, transform, thresh, mode='voc'):
         elif args.dataset == 'VOC':
             img = testset.pull_image(index)
 
-        # img_id, annotation = testset.pull_anno(i)
         x = torch.from_numpy(transform(img)[0][:, :, (2, 1, 0)]).permute(2, 0, 1)
         x = x.unsqueeze(0).to(device)
 
-        t0 = time.clock()
-        y = net(x)      # forward pass
-        detections = y
-        print("detection time used ", Decimal(time.clock()) - Decimal(t0), "s")
+        t0 = time.time()
+        bbox_pred, scores, cls_inds = net(x)      # forward pass
+        t1 = time.time()
+        print("detection time used ", t1 - t0, "s")
         # scale each detection back up to the image
         scale = np.array([[img.shape[1], img.shape[0],
                              img.shape[1], img.shape[0]]])
-        bbox_pred, scores, cls_inds = detections
         # map the boxes to origin image scale
         bbox_pred *= scale
 
@@ -108,29 +103,24 @@ def test():
 
     # load net
     num_classes = 80
+    input_size = [args.input_size, args.input_size]
     if args.dataset == 'COCO_val':
-        cfg = config.coco_af
-        input_size = cfg['min_dim']
         testset = COCODataset(
-                    data_dir=args.dataset_root,
+                    data_dir=coco_root,
                     json_file='instances_val2017.json',
                     name='val2017',
-                    img_size=cfg['min_dim'][0],
+                    img_size=input_size[0],
                     debug=args.debug)
 
     elif args.dataset == 'COCO_test-dev':
-        cfg = config.coco_af
-        input_size = cfg['min_dim']
         testset = COCODataset(
-                    data_dir=args.dataset_root,
+                    data_dir=coco_root,
                     json_file='image_info_test-dev2017.json',
                     name='test2017',
-                    img_size=cfg['min_dim'][0],
+                    img_size=input_size[0],
                     debug=args.debug)
 
     elif args.dataset == 'VOC':
-        cfg = config.voc_af
-        input_size = cfg['min_dim']
         testset = VOCDetection(VOC_ROOT, [('2007', 'test')], None, VOCAnnotationTransform())
 
     # build model
@@ -150,7 +140,7 @@ def test():
 
     # evaluation
     test_net(net, device, testset,
-             BaseTransform(net.input_size, mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229)),
+             BaseTransform(net.input_size),
              thresh=args.visual_threshold)
 
 if __name__ == '__main__':

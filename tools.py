@@ -5,22 +5,6 @@ import torch.nn.functional as F
 
 CLASS_COLOR = [(np.random.randint(255),np.random.randint(255),np.random.randint(255)) for _ in range(len(VOC_CLASSES))]
 
-class BCELoss(nn.Module):
-    def __init__(self,  weight=None, ignore_index=-100, reduce=None, reduction='mean'):
-        super(BCELoss, self).__init__()
-        self.reduction = reduction
-    def forward(self, inputs, targets):
-        pos_id = (targets==1.0).float()
-        neg_id = (targets==0.0).float()
-        pos_loss = -pos_id * torch.log(inputs + 1e-14)
-        neg_loss = -neg_id * torch.log(1.0 - inputs + 1e-14)
-        if self.reduction == 'mean':
-            pos_loss = torch.mean(torch.sum(pos_loss, 1))
-            neg_loss = torch.mean(torch.sum(neg_loss, 1))
-            return pos_loss, neg_loss
-        else:
-            return pos_loss, neg_loss
-
 
 class MSELoss(nn.Module):
     def __init__(self, reduction='mean'):
@@ -39,23 +23,6 @@ class MSELoss(nn.Module):
             return pos_loss, neg_loss
 
 
-class BCE_focal_loss(nn.Module):
-    def __init__(self,  weight=None, gamma=2, reduction='mean'):
-        super(BCE_focal_loss, self).__init__()
-        self.gamma = gamma
-        self.reduction = reduction
-    def forward(self, inputs, targets):
-        pos_id = (targets==1.0).float()
-        neg_id = (1 - pos_id).float()
-        pos_loss = -pos_id * (1.0-inputs)**self.gamma * torch.log(inputs + 1e-14)
-        neg_loss = -neg_id * (inputs)**self.gamma * torch.log(1.0 - inputs + 1e-14)
-
-        if self.reduction == 'mean':
-            return torch.mean(torch.sum(pos_loss+neg_loss, 1))
-        else:
-            return pos_loss+neg_loss
-  
-
 def generate_dxdywh(gt_label, w, h, s):
     xmin, ymin, xmax, ymax = gt_label[:-1]
     # compute the center, width and height
@@ -64,7 +31,7 @@ def generate_dxdywh(gt_label, w, h, s):
     box_w = (xmax - xmin) * w
     box_h = (ymax - ymin) * h
 
-    if box_w < 1e-28 or box_h < 1e-28:
+    if box_w < 1. or box_h < 1.:
         # print('A dirty data !!!')
         return False    
 

@@ -37,6 +37,8 @@ parser.add_argument('-d', '--dataset', default='VOC',
                     help='VOC or COCO dataset')
 parser.add_argument('--trained_model', default='weights/voc/', type=str,
                     help='Trained state_dict file path to open')
+parser.add_argument('-size', '--input_size', default=416, type=int,
+                    help='input size')
 parser.add_argument('--save_folder', default='eval/', type=str,
                     help='File path to save results')
 parser.add_argument('--confidence_threshold', default=0.01, type=float,
@@ -376,9 +378,8 @@ def test_net(save_folder, net, device, dataset, top_k, thresh=0.05):
                                 c_scores[:, np.newaxis])).astype(np.float32,
                                                                 copy=False)
             all_boxes[j][i] = c_dets
-
-        print('im_detect: {:d}/{:d} {:.3f}s'.format(i + 1,
-                                                    num_images, detect_time))
+        if i % 500 == 0:
+            print('im_detect: {:d}/{:d} {:.3f}s'.format(i + 1, num_images, detect_time))
 
     with open(det_file, 'wb') as f:
         pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
@@ -401,8 +402,7 @@ if __name__ == '__main__':
     else:
         device = torch.device("cpu")
 
-    cfg = config.voc_af
-    input_size = cfg['min_dim']
+    input_size = [args.input_size, args.input_size]
     num_classes = len(labelmap)
 
     # build model
@@ -420,9 +420,7 @@ if __name__ == '__main__':
     net.eval()
     print('Finished loading model!')
     # load data
-    dataset = VOCDetection(args.voc_root, [('2007', set_type)],
-                           BaseTransform(net.input_size, mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229)),
-                           VOCAnnotationTransform())
+    dataset = VOCDetection(args.voc_root, img_size=None, image_sets=[('2007', set_type)], transform=BaseTransform(net.input_size))
     net = net.to(device)
     # evaluation
     test_net(args.save_folder, net, device, dataset, args.top_k, thresh=args.confidence_threshold)

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from utils import Conv2d, SPP, SAM
-from backbone import *
+from utils import SPP, SAM, BottleneckCSP, Conv
+from backbone import resnet18
 import numpy as np
 import tools
 
@@ -21,14 +21,15 @@ class myYOLO(nn.Module):
 
         # we use resnet18 as backbone
         self.backbone = resnet18(pretrained=True)
-        self.SPP = SPP(512, 512)
-        self.SAM = SAM(512)
-        self.conv_set = nn.Sequential(
-            Conv2d(512, 256, 1, leakyReLU=True),
-            Conv2d(256, 512, 3, padding=1, leakyReLU=True),
-            Conv2d(512, 256, 1, leakyReLU=True),
-            Conv2d(256, 512, 3, padding=1, leakyReLU=True),
+
+        # neck
+        self.SPP = nn.Sequential(
+            Conv(512, 256, k=1),
+            SPP(),
+            BottleneckCSP(256*4, 512, n=1, shortcut=False)
         )
+        self.SAM = SAM(512)
+        self.conv_set = BottleneckCSP(512, 512, n=3, shortcut=False)
 
         self.pred = nn.Conv2d(512, 1 + self.num_classes + 4, 1)
     
@@ -157,6 +158,8 @@ class myYOLO(nn.Module):
         cls_pred = prediction[:, :, 1 : 1 + self.num_classes]
         # [B, H*W, 4]
         txtytwth_pred = prediction[:, :, 1 + self.num_classes:]
+
+        # test
         if not self.trainable:
             with torch.no_grad():
                 # batch size = 1

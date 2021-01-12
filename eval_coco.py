@@ -24,10 +24,10 @@ parser.add_argument('-v', '--version', default='yolo',
                     help='yolo.')
 parser.add_argument('-t', '--testset', action='store_true', default=False,
                     help='COCO_val, COCO_test-dev dataset')
-parser.add_argument('--dataset_root', default='/home/k303/object-detection/dataset/COCO/', 
-                    help='Location of VOC root directory')
 parser.add_argument('--trained_model', default='weights/coco/', type=str,
                     help='Trained state_dict file path to open')
+parser.add_argument('-size', '--input_size', default=416, type=int,
+                    help='input size')
 parser.add_argument('--num_classes', default=80, type=int, 
                     help='The number of dataset classes')
 parser.add_argument('--n_cpu', default=8, type=int, 
@@ -39,28 +39,27 @@ parser.add_argument('--debug', action='store_true', default=False,
 
 
 args = parser.parse_args()
-data_dir = args.dataset_root
+data_dir = coco_root
 
-def test(model, device):
-    global cfg
+def test(model, device, input_size):
     if args.testset:
         print('test on test-dev 2017')
         evaluator = COCOAPIEvaluator(
                         data_dir=data_dir,
-                        img_size=cfg['min_dim'],
+                        img_size=input_size,
                         device=device,
                         testset=True,
-                        transform=BaseTransform(cfg['min_dim'], mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229))
+                        transform=BaseTransform(input_size)
                         )
 
     else:
         # eval
         evaluator = COCOAPIEvaluator(
                         data_dir=data_dir,
-                        img_size=cfg['min_dim'],
+                        img_size=input_size,
                         device=device,
                         testset=False,
-                        transform=BaseTransform(cfg['min_dim'], mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229))
+                        transform=BaseTransform(input_size)
                         )
 
     # COCO evaluation
@@ -72,9 +71,7 @@ def test(model, device):
 
 
 if __name__ == '__main__':
-    global cfg
 
-    cfg = coco_af
     if args.cuda:
         print('use cuda')
         torch.backends.cudnn.benchmark = True
@@ -82,11 +79,11 @@ if __name__ == '__main__':
     else:
         device = torch.device("cpu")
     num_classes = args.num_classes
-    
+    input_size = [args.input_size, args.input_size]
 
     if args.version == 'yolo':
         from models.yolo import myYOLO
-        model = myYOLO(device, input_size=cfg['min_dim'], num_classes=num_classes, trainable=False)
+        model = myYOLO(device, input_size=input_size, num_classes=num_classes, trainable=False)
         print('Let us evaluate YOLO on the COCO dataset ......')
 
     else:
@@ -98,4 +95,4 @@ if __name__ == '__main__':
     model.eval().to(device)
     print('Finished loading model!')
 
-    test(model, device)
+    test(model, device, input_size)

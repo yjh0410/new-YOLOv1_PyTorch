@@ -28,8 +28,6 @@ def parse_args():
                         help='use high resolution to pretrain.')  
     parser.add_argument('-ms', '--multi_scale', action='store_true', default=False,
                         help='use multi-scale trick')                  
-    parser.add_argument('-fl', '--use_focal', action='store_true', default=False,
-                        help='use focal loss')
     parser.add_argument('--batch_size', default=32, type=int, 
                         help='Batch size for training')
     parser.add_argument('--lr', default=1e-3, type=float, 
@@ -40,8 +38,8 @@ def parse_args():
                         help='yes or no to choose using warmup strategy to train')
     parser.add_argument('--wp_epoch', type=int, default=4,
                         help='The upper bound of warm-up')
-    parser.add_argument('--dataset_root', default='/home/k303/object-detection/dataset/COCO/', 
-                        help='Location of VOC root directory')
+    parser.add_argument('--mosaic', action='store_true', default=False,
+                        help='use mosaic augmentation.')
     parser.add_argument('--num_classes', default=80, type=int, 
                         help='The number of dataset classes')
     parser.add_argument('--momentum', default=0.9, type=float, 
@@ -50,7 +48,7 @@ def parse_args():
                         help='Weight decay for SGD')
     parser.add_argument('--gamma', default=0.1, type=float, 
                         help='Gamma update for SGD')
-    parser.add_argument('--num_workers', default=0, type=int, 
+    parser.add_argument('--num_workers', default=8, type=int, 
                         help='Number of workers used in dataloading')
     parser.add_argument('--eval_epoch', type=int,
                             default=10, help='interval between evaluations')
@@ -68,7 +66,7 @@ def parse_args():
 
 def train():
     args = parse_args()
-    data_dir = args.dataset_root
+    data_dir = coco_root
 
     path_to_save = os.path.join(args.save_folder, args.version)
     os.makedirs(path_to_save, exist_ok=True)
@@ -87,21 +85,26 @@ def train():
     else:
         device = torch.device("cpu")
 
+    if args.mosaic:
+        print("use Mosaic Augmentation ...")
+
+    # multi scale
     if args.multi_scale:
         print('Let us use the multi-scale trick.')
-        input_size = [608, 608]
-        dataset = COCODataset(
-                    data_dir=data_dir,
-                    img_size=608,
-                    transform=SSDAugmentation([608, 608], mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229)),
-                    debug=args.debug)
+        input_size = [640, 640]
     else:
-        input_size = cfg['min_dim']
-        dataset = COCODataset(
-                    data_dir=data_dir,
-                    img_size=cfg['min_dim'][0],
-                    transform=SSDAugmentation(cfg['min_dim'], mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229)),
-                    debug=args.debug)
+        input_size = [416, 416]
+
+    print("Setting Arguments.. : ", args)
+    print("----------------------------------------------------------")
+    print('Loading the MSCOCO dataset...')
+    # dataset
+    dataset = COCODataset(
+                data_dir=data_dir,
+                img_size=input_size[0],
+                transform=SSDAugmentation(input_size),
+                debug=args.debug,
+                mosaic=args.mosaic)
 
     # build model
     if args.version == 'yolo':
@@ -114,10 +117,7 @@ def train():
         exit()
 
     
-    print("Setting Arguments.. : ", args)
     print("----------------------------------------------------------")
-    print('Loading the MSCOCO dataset...')
-    print('Training model on:', dataset.name)
     print('The dataset size:', len(dataset))
     print("----------------------------------------------------------")
 
@@ -147,7 +147,7 @@ def train():
                     data_dir=data_dir,
                     img_size=cfg['min_dim'],
                     device=device,
-                    transform=BaseTransform(cfg['min_dim'], mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229))
+                    transform=BaseTransform(cfg['min_dim'])
                     )
 
     # optimizer setup
@@ -180,21 +180,6 @@ def train():
                 tmp_lr = tmp_lr * 0.1
                 set_lr(optimizer, tmp_lr)
     
-        # COCO evaluation
-        if (epoch + 1) % args.eval_epoch == 0:
-            model.trainable = False
-            model.set_grid(cfg['min_dim'])
-            # evaluate
-            ap50_95, ap50 = evaluator.evaluate(model)
-            print('ap50 : ', ap50)
-            print('ap50_95 : ', ap50_95)
-            # convert to training mode.
-            model.trainable = True
-            model.train()
-            if args.tfboard:
-                writer.add_scalar('val/COCOAP50', ap50, epoch + 1)
-                writer.add_scalar('val/COCOAP50_95', ap50_95, epoch + 1)
-
 
         for iter_i, (images, targets) in enumerate(dataloader):
             # WarmUp strategy for learning rate
@@ -208,13 +193,22 @@ def train():
                     tmp_lr = base_lr
                     set_lr(optimizer, tmp_lr)
         
+            # to device
+            images = images.to(device)
+
+            # multi-scale trick
+            if iter_i % 10 == 0 and iter_i > 0 and args.multi_scale:
+                # randomly choose a new size
+                size = random.randint(10, 19) * 32
+                input_size = [size, size]
+                model.set_grid(input_size)
+            if args.multi_scale:
+                # interpolate
+                images = torch.nn.functional.interpolate(images, size=input_size, mode='bilinear', align_corners=False)
+
             # make labels
             targets = [label.tolist() for label in targets]
             targets = tools.gt_creator(input_size=input_size, stride= yolo_net.stride, label_lists=targets)
-
-
-            # to device
-            images = images.to(device)
             targets = torch.tensor(targets).float().to(device)
 
             # forward and loss
@@ -242,22 +236,27 @@ def train():
 
                 t0 = time.time()
 
-            # multi-scale trick
-            if iter_i % 10 == 0 and iter_i > 0 and args.multi_scale:
-                size = random.randint(10, 19) * 32
-                input_size = [size, size]
-
-                # change input dim
-                # But this operation will report bugs when we use more workers in data loader, so I have to use 0 workers.
-                # I don't know how to make it suit more workers, and I'm trying to solve this question.
-                dataloader.dataset.reset_transform(SSDAugmentation(input_size, mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229)))
-
 
         if (epoch + 1) % 10 == 0:
             print('Saving state, epoch:', epoch + 1)
             torch.save(model.state_dict(), os.path.join(path_to_save, 
                         args.version + '_' + repr(epoch + 1) + '.pth')
                         )  
+
+        # COCO evaluation
+        if (epoch + 1) % args.eval_epoch == 0:
+            model.trainable = False
+            model.set_grid(cfg['min_dim'])
+            # evaluate
+            ap50_95, ap50 = evaluator.evaluate(model)
+            print('ap50 : ', ap50)
+            print('ap50_95 : ', ap50_95)
+            # convert to training mode.
+            model.trainable = True
+            model.train()
+            if args.tfboard:
+                writer.add_scalar('val/COCOAP50', ap50, epoch + 1)
+                writer.add_scalar('val/COCOAP50_95', ap50_95, epoch + 1)
 
 def set_lr(optimizer, lr):
     for param_group in optimizer.param_groups:

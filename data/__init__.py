@@ -1,4 +1,5 @@
 from .voc0712 import VOCDetection, VOCAnnotationTransform, VOC_CLASSES, VOC_ROOT
+from .cocodataset import coco_class_index, coco_class_labels, COCODataset, coco_root
 from .config import *
 import torch
 import cv2

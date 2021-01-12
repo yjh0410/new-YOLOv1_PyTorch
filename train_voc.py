@@ -35,8 +35,8 @@ def parse_args():
                         help='yes or no to choose using warmup strategy to train')
     parser.add_argument('--wp_epoch', type=int, default=2,
                         help='The upper bound of warm-up')
-    parser.add_argument('--dataset_root', default=VOC_ROOT, 
-                        help='Location of VOC root directory')
+    parser.add_argument('--mosaic', action='store_true', default=False,
+                        help='use mosaic augmentation.')
     parser.add_argument('--num_classes', default=20, type=int, 
                         help='The number of dataset classes')
     parser.add_argument('--momentum', default=0.9, type=float, 
@@ -45,7 +45,7 @@ def parse_args():
                         help='Weight decay for SGD')
     parser.add_argument('--gamma', default=0.1, type=float, 
                         help='Gamma update for SGD')
-    parser.add_argument('--num_workers', default=0, type=int, 
+    parser.add_argument('--num_workers', default=8, type=int, 
                         help='Number of workers used in dataloading')
     parser.add_argument('--cuda', action='store_true', default=False,
                         help='use cuda.')
@@ -87,15 +87,21 @@ def train():
     else:
         device = torch.device("cpu")
 
+    if args.mosaic:
+        print("use Mosaic Augmentation ...")
+        
     # use multi-scale trick
+    # multi scale
     if args.multi_scale:
-        print('use multi-scale trick.')
-        input_size = [608, 608]
-        dataset = VOCDetection(root=args.dataset_root, transform=SSDAugmentation([608, 608], mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229)))
-
+        print('Let us use the multi-scale trick.')
+        input_size = [640, 640]
     else:
-        input_size = cfg['min_dim']
-        dataset = VOCDetection(root=args.dataset_root, transform=SSDAugmentation(cfg['min_dim'], mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229)))
+        input_size = [416, 416]
+
+    # dataset
+    dataset = VOCDetection(root=VOC_ROOT, img_size=input_size[0],
+                            transform=SSDAugmentation(input_size),
+                            mosaic=args.mosaic)
 
     # build model
     if args.version == 'yolo':
@@ -179,14 +185,24 @@ def train():
                 elif epoch == args.wp_epoch and iter_i == 0:
                     tmp_lr = base_lr
                     set_lr(optimizer, tmp_lr)
-                    
-            targets = [label.tolist() for label in targets]
-
-            # make train label
-            targets = tools.gt_creator(input_size=input_size, stride= yolo_net.stride, label_lists=targets)
 
             # to device
             images = images.to(device)
+
+            # multi-scale trick
+            if iter_i % 10 == 0 and iter_i > 0 and args.multi_scale:
+                # randomly choose a new size
+                size = random.randint(10, 19) * 32
+                input_size = [size, size]
+                model.set_grid(input_size)
+            if args.multi_scale:
+                # interpolate
+                images = torch.nn.functional.interpolate(images, size=input_size, mode='bilinear', align_corners=False)
+
+
+            # make train label
+            targets = [label.tolist() for label in targets]
+            targets = tools.gt_creator(input_size=input_size, stride= yolo_net.stride, label_lists=targets)
             targets = torch.tensor(targets).float().to(device)
 
             # forward and loss
@@ -212,16 +228,6 @@ def train():
                         flush=True)
 
                 t0 = time.time()
-
-            # multi-scale trick
-            if iter_i % 10 == 0 and iter_i > 0 and args.multi_scale:
-                size = random.randint(10, 19) * 32
-                input_size = [size, size]
-
-                # change input dim
-                # But this operation will report bugs when we use more workers in data loader, so I have to use 0 workers.
-                # I don't know how to make it suit more workers, and I'm trying to solve this question.
-                data_loader.dataset.reset_transform(SSDAugmentation(input_size, mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229)))
 
         if (epoch + 1) % 10 == 0:
             print('Saving state, epoch:', epoch + 1)
