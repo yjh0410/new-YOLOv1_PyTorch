@@ -20,9 +20,9 @@ parser.add_argument('--trained_model', default='weights/coco/',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('-size', '--input_size', default=416, type=int,
                     help='input size')
-parser.add_argument('--visual_threshold', default=0.3, type=float,
+parser.add_argument('--visual_threshold', default=0.4, type=float,
                     help='Final confidence threshold')
-parser.add_argument('--cuda', default=True, type=bool,
+parser.add_argument('--cuda', action='store_true', default=False,
                     help='Use cuda to test model') 
 parser.add_argument('-f', default=None, type=str, 
                     help="Dummy arg so we can load in Jupyter Notebooks")
