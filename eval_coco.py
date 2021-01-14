@@ -1,23 +1,14 @@
 from __future__ import division
 
 from utils.cocoapi_evaluator import COCOAPIEvaluator
-from utils.coco_test import COCOTest
 from data import *
-from utils.augmentations import SSDAugmentation
 from data.cocodataset import *
 import tools
 
 import os
-import random
 import argparse
 import time
-import math
-import matplotlib.pyplot as plt
-import numpy as np
-
 import torch
-from torch.autograd import Variable
-import torch.optim as optim
 
 parser = argparse.ArgumentParser(description='YOLO Detection')
 parser.add_argument('-v', '--version', default='yolo',

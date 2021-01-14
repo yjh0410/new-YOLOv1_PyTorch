@@ -27,7 +27,8 @@ My loss function and groundtruth creator both in the ```tools.py```, and you can
 Environment:
 
 - Python3.6, opencv-python, PyTorch1.1.0, CUDA10.0,cudnn7.5
-- AMD R5-3500-6 core, GTX-1660ti-6g
+- For training: Intel i9-9940k, TITAN-RTX-24g
+- For inference: Intel i5-6300H, GTX-1060-3g
 
 VOC:
 <table><tbody>
@@ -40,9 +41,9 @@ VOC:
 COCO:
 <table><tbody>
 <tr><th align="left" bgcolor=#f8f8f8> </th>     <td bgcolor=white> size </td><td bgcolor=white> AP </td><td bgcolor=white> AP50 </tr>
-<tr><th align="left" bgcolor=#f8f8f8> COCO val</th><td bgcolor=white> 320 </td><td bgcolor=white>  </td><td bgcolor=white>  </td></tr>
-<tr><th align="left" bgcolor=#f8f8f8> COCO val</th><td bgcolor=white> 416 </td><td bgcolor=white>  </td><td bgcolor=white>  </td></tr>
-<tr><th align="left" bgcolor=#f8f8f8> COCO val</th><td bgcolor=white> 608 </td><td bgcolor=white>  </td><td bgcolor=white>  </td></tr>
+<tr><th align="left" bgcolor=#f8f8f8> COCO val</th><td bgcolor=white> 320 </td><td bgcolor=white> 14.50 </td><td bgcolor=white> 30.15 </td></tr>
+<tr><th align="left" bgcolor=#f8f8f8> COCO val</th><td bgcolor=white> 416 </td><td bgcolor=white> 17.34 </td><td bgcolor=white> 35.28 </td></tr>
+<tr><th align="left" bgcolor=#f8f8f8> COCO val</th><td bgcolor=white> 608 </td><td bgcolor=white> 19.90 </td><td bgcolor=white> 39.27 </td></tr>
 </table></tbody>
 
 ## Installation
